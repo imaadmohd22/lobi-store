@@ -128,8 +128,8 @@ export default function RootLayout({
             <Link href="/privacy" className="hover:text-[#a77b48] transition">Privacy Policy</Link>
             <Link href="/refund-policy" className="hover:text-[#a77b48] transition">Refund Policy</Link>
           </div>
-          <p>&copy; {new Date().getFullYear()} LOBI. All rights reserved. Crafted with nature.</p>
-        </footer>
+        <p>&copy; 2026 LOBI. All rights reserved. Crafted with nature.</p>
+            </footer>
       </body>
     </html>
   );

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
-export default function ProductDetailPage() {
+function ProductDetailContent() {
   const params = useParams();
   const id = params?.id;
   const [product, setProduct] = useState<any>(null);
@@ -278,5 +278,13 @@ export default function ProductDetailPage() {
 
       </div>
     </main>
+  );
+}
+
+export default function ProductDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#faf8f3]"><p className="text-sm text-gray-400">Loading...</p></div>}>
+      <ProductDetailContent />
+    </Suspense>
   );
 }

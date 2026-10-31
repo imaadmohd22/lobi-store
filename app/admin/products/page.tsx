@@ -12,7 +12,8 @@ export default function AdminProductsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // New product form states
+  // Form states (supporting both Add and Edit)
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("Furniture");
@@ -49,33 +50,73 @@ export default function AdminProductsPage() {
     setLoading(false);
   }
 
-  async function handleAddProduct(e: React.FormEvent) {
+  async function handleSaveProduct(e: React.FormEvent) {
     e.preventDefault();
     setFeedback(null);
     setSubmitting(true);
 
-    const { error } = await supabase.from("products").insert([
-      {
-        name,
-        price: Number(price),
-        category,
-        description,
-        image_url: imageUrl,
-        images: [imageUrl],
-      },
-    ]);
+    if (editingId) {
+      // Update existing product
+      const { error } = await supabase
+        .from("products")
+        .update({
+          name,
+          price: Number(price),
+          category,
+          description,
+          image_url: imageUrl,
+          images: [imageUrl],
+        })
+        .eq("id", editingId);
 
-    if (error) {
-      setFeedback({ text: "Failed to add product: " + error.message, type: "error" });
+      if (error) {
+        setFeedback({ text: "Failed to update product: " + error.message, type: "error" });
+      } else {
+        setFeedback({ text: "Product updated successfully!", type: "success" });
+        resetForm();
+        fetchProducts();
+      }
     } else {
-      setFeedback({ text: "Product added successfully!", type: "success" });
-      setName("");
-      setPrice("");
-      setDescription("");
-      setImageUrl("");
-      fetchProducts();
+      // Add new product
+      const { error } = await supabase.from("products").insert([
+        {
+          name,
+          price: Number(price),
+          category,
+          description,
+          image_url: imageUrl,
+          images: [imageUrl],
+        },
+      ]);
+
+      if (error) {
+        setFeedback({ text: "Failed to add product: " + error.message, type: "error" });
+      } else {
+        setFeedback({ text: "Product added successfully!", type: "success" });
+        resetForm();
+        fetchProducts();
+      }
     }
     setSubmitting(false);
+  }
+
+  function handleEditClick(prod: any) {
+    setEditingId(prod.id);
+    setName(prod.name || "");
+    setPrice(prod.price || "");
+    setCategory(prod.category || "Furniture");
+    setDescription(prod.description || "");
+    setImageUrl(prod.image_url || prod.images?.[0] || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setPrice("");
+    setCategory("Furniture");
+    setDescription("");
+    setImageUrl("");
   }
 
   async function handleDeleteProduct(id: string) {
@@ -83,6 +124,7 @@ export default function AdminProductsPage() {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (!error) {
       setProducts(products.filter((p) => p.id !== id));
+      if (editingId === id) resetForm();
     } else {
       alert("Failed to delete product");
     }
@@ -114,15 +156,30 @@ export default function AdminProductsPage() {
           </Link>
         </div>
 
-        {/* Add Product Form */}
+        {/* Add / Edit Product Form */}
         <div className="bg-white p-6 rounded-3xl border border-[#e9e5dc] shadow-sm max-w-2xl">
-          <h2 className="text-sm font-bold text-[#293b2b] mb-4">Add New Product</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-bold text-[#293b2b]">
+              {editingId ? "Edit Product" : "Add New Product"}
+            </h2>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-[10px] font-bold text-gray-400 hover:text-black uppercase tracking-wider"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+
           {feedback && (
             <div className={`mb-4 p-3 rounded-xl text-xs border ${feedback.type === "error" ? "bg-red-50 text-red-600 border-red-200" : "bg-green-50 text-green-700 border-green-200"}`}>
               {feedback.text}
             </div>
           )}
-          <form onSubmit={handleAddProduct} className="space-y-4">
+
+          <form onSubmit={handleSaveProduct} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Product Name</label>
@@ -189,12 +246,12 @@ export default function AdminProductsPage() {
               disabled={submitting}
               className="rounded-full bg-[#293b2b] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#3c513e] transition disabled:opacity-50"
             >
-              {submitting ? "Adding Product..." : "+ Add Product"}
+              {submitting ? "Saving..." : editingId ? "Update Product" : "+ Add Product"}
             </button>
           </form>
         </div>
 
-        {/* Products List */}
+        {/* Products List with Edit & Delete */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-[#293b2b]">Existing Products ({products.length})</h2>
           {products.length === 0 ? (
@@ -213,12 +270,20 @@ export default function AdminProductsPage() {
                       <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">{prod.category || "Furniture"}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteProduct(prod.id)}
-                    className="rounded-full bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEditClick(prod)}
+                      className="rounded-full bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 transition"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProduct(prod.id)}
+                      className="rounded-full bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

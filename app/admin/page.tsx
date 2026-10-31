@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -40,7 +39,7 @@ export default function AdminPage() {
 
       if (ordersData) setOrders(ordersData);
 
-      // Fetch Reviews (try-catch or graceful fallback if table isn't created yet)
+      // Fetch Reviews
       const { data: reviewsData, error: reviewError } = await supabase
         .from("reviews")
         .select("*, products(name)")
@@ -121,12 +120,13 @@ export default function AdminPage() {
             </span>
             <h1 className="text-3xl font-bold text-[#293b2b] mt-1">Admin Dashboard</h1>
           </div>
-          <Link
+          {/* Changed Link to standard anchor tag for reliable navigation */}
+          <a
             href="/admin/products"
-            className="rounded-full bg-[#293b2b] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#3c513e] transition text-center"
+            className="rounded-full bg-[#293b2b] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#3c513e] transition text-center inline-block"
           >
             + Manage Products
-          </Link>
+          </a>
         </div>
 
         {/* Main Section Switcher (Orders vs Reviews) */}
